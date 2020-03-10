@@ -68,7 +68,6 @@ public class ReservationService {
                 return repository.save(r);
             }
             Set<Integer> availableRooms = validateAvailabilityAndGetAvailableRooms(r, true, overlapsOldReservation);
-            System.out.println(availableRooms);
             Optional<Reservation> result = obtainLockAndExecuteReservationAction(availableRooms, r, true, (reservation) -> repository.save(reservation));
             return result.get();
         }).get();
