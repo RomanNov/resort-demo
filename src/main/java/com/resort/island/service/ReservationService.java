@@ -94,8 +94,8 @@ public class ReservationService {
     }
 
     private void validateReservation(Reservation r) {
-        if (!LocalDate.now().isAfter(r.getArrival())) {
-            throw new InvalidPropertyException(Reservation.class, "arrivalDate", "A reservation can be made at least 1 day in advance.");
+        if (!r.getArrival().isAfter(LocalDate.now())) {
+            throw new InvalidPropertyException(Reservation.class, "arrivalDate", "A reservation should be made at least 1 day in advance.");
         }
 
         if (r.getDeparture().isBefore(r.getArrival())) {
