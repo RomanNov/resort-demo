@@ -94,13 +94,18 @@ public class ReservationService {
     }
 
     private void validateReservation(Reservation r) {
-        if (!r.getArrival().isAfter(LocalDate.now())) {
-            throw new InvalidPropertyException(Reservation.class, "arrivalDate", "A reservation can be made at least 1 day before the arrival date.");
+        if (!LocalDate.now().isAfter(r.getArrival())) {
+            throw new InvalidPropertyException(Reservation.class, "arrivalDate", "A reservation can be made at least 1 day in advance.");
         }
 
         if (r.getDeparture().isBefore(r.getArrival())) {
             throw new InvalidPropertyException(Reservation.class, "departureDate", "Departure date must be same day or later than arrival date");
         }
+
+        if (!LocalDate.now().plusDays(31).isAfter(r.getArrival())) {
+            throw new InvalidPropertyException(Reservation.class, "departureDate", "A reservation can be made at most 30 days in advance.");
+        }
+
         if (!r.getArrival().plusDays(3).isAfter(r.getDeparture())) {
             throw new InvalidPropertyException(Reservation.class, "departureDate", "The maximum allowed stay is of 3 days.");
         }
