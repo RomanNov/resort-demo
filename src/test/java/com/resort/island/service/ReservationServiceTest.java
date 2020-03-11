@@ -126,7 +126,7 @@ class ReservationServiceTest {
     @Test
     void createConcurrentReservations() throws Exception {
         repository.deleteAll();
-        int N = 10;
+        int N = reservationService.getTotalRooms() + 10;
         String[] result = new String[N];
         Thread[] thread = new Thread[N];
         for(int i = 0; i < N; i++) {
@@ -152,7 +152,7 @@ class ReservationServiceTest {
         List<String> resultList = new ArrayList<>(Arrays.asList(result));
         resultList.removeIf(s -> s.equals("Unfortunately we were not able to create the reservation."));
         resultList.removeIf(s -> s.equals("Unfortunately no rooms are available at the moment to make a reservation for the selected dates."));
-        Assert.assertEquals(2 ,resultList.size());
+        Assert.assertEquals(reservationService.getTotalRooms().intValue() ,resultList.size());
         Assert.assertTrue(repository.findById(resultList.get(0)).get().getId() != repository.findById(resultList.get(1)).get().getId());
         Assert.assertTrue(repository.findById(resultList.get(0)).get().getRoomNumber() != repository.findById(resultList.get(1)).get().getRoomNumber());
     }

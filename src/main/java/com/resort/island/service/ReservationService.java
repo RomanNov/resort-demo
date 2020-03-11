@@ -40,6 +40,10 @@ public class ReservationService {
         }
     }
 
+    public Integer getTotalRooms() {
+        return totalRooms;
+    }
+
     public String createReservation(Reservation newReservation) throws Exception {
         validateReservation(newReservation);
         Set<Integer> availableRooms = validateAvailabilityAndGetAvailableRooms(newReservation, false, false);
