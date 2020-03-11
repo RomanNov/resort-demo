@@ -17,8 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -122,6 +121,40 @@ class ReservationServiceTest {
         reservation.setDepartureDate(LocalDate.now().plusDays(2).toString());
         String result = reservationService.createReservation(reservation);
         Assert.assertNotNull(result);
+    }
+
+    @Test
+    void createConcurrentReservations() throws Exception {
+        repository.deleteAll();
+        int N = 10;
+        String[] result = new String[N];
+        Thread[] thread = new Thread[N];
+        for(int i = 0; i < N; i++) {
+            int j = i;
+            thread[j] = new Thread(() -> {
+                try {
+                    Reservation reservation = new Reservation();
+                    reservation.setEmail("u2@u2");
+                    reservation.setFirstName("u2");
+                    reservation.setLastName("u2");
+                    reservation.setArrivalDate(LocalDate.now().plusDays(1).toString());
+                    reservation.setDepartureDate(LocalDate.now().plusDays(2).toString());
+                    result[j] = reservationService.createReservation(reservation);
+                } catch (Exception e) {
+                    result[j] = e.getMessage();
+                }
+                });
+            thread[j].start();
+        }
+        for(int i = N-1; i >= 0; i--) {
+            thread[i].join();
+        }
+        List<String> resultList = new ArrayList<>(Arrays.asList(result));
+        resultList.removeIf(s -> s.equals("Unfortunately we were not able to create the reservation."));
+        resultList.removeIf(s -> s.equals("Unfortunately no rooms are available at the moment to make a reservation for the selected dates."));
+        Assert.assertEquals(2 ,resultList.size());
+        Assert.assertTrue(repository.findById(resultList.get(0)).get().getId() != repository.findById(resultList.get(1)).get().getId());
+        Assert.assertTrue(repository.findById(resultList.get(0)).get().getRoomNumber() != repository.findById(resultList.get(1)).get().getRoomNumber());
     }
 
     @Test

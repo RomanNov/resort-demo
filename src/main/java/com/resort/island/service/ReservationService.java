@@ -43,11 +43,11 @@ public class ReservationService {
     public String createReservation(Reservation newReservation) throws Exception {
         validateReservation(newReservation);
         Set<Integer> availableRooms = validateAvailabilityAndGetAvailableRooms(newReservation, false, false);
-        Optional<Reservation> result = obtainLockAndExecuteReservationAction(availableRooms, newReservation, false, (reservation) -> repository.save(reservation));
+        Optional<Reservation> result = obtainLockAndExecuteReservationAction(availableRooms, newReservation, false, false, (reservation) -> repository.save(reservation));
         if (result.isPresent()) {
             return result.get().getId();
         }
-        throw new Exception("Unfortunately we were not able to create the reservation");
+        throw new Exception("Unfortunately we were not able to create the reservation.");
     }
 
     public Reservation updateReservation(String id, Reservation newReservation) {
@@ -68,7 +68,7 @@ public class ReservationService {
                 return repository.save(r);
             }
             Set<Integer> availableRooms = validateAvailabilityAndGetAvailableRooms(r, true, overlapsOldReservation);
-            Optional<Reservation> result = obtainLockAndExecuteReservationAction(availableRooms, r, true, (reservation) -> repository.save(reservation));
+            Optional<Reservation> result = obtainLockAndExecuteReservationAction(availableRooms, r, true, overlapsOldReservation, (reservation) -> repository.save(reservation));
             return result.get();
         }).get();
     }
@@ -140,27 +140,12 @@ public class ReservationService {
         return availableRooms;
     }
 
-    private boolean validateRoomAvailability(LocalDate arrivalDate, LocalDate departureDate, Integer room, final String reservationIdToSkip) {
-        LocalDate startDate = arrivalDate.minusDays(2);
-        LocalDate endDate = departureDate;
-        List<Reservation> overlappingReservations = getReservationsInRange(startDate.toString(), endDate.toString() )
-                .stream()
-                .filter(r -> r.getDeparture().isAfter(arrivalDate.minusDays(1)))
-                .filter(r -> reservationIdToSkip != null && !r.getId().equals(reservationIdToSkip))
-                .collect(Collectors.toList());
-        if (overlappingReservations.isEmpty()) {
-            return true;
-        }
-        return !overlappingReservations.stream().map(r -> r.getRoomNumber()).collect(Collectors.toSet()).contains(room);
-    }
-
-    private Optional<Reservation> obtainLockAndExecuteReservationAction (Set<Integer> availableRooms, Reservation reservation, boolean isUpdate, Function<Reservation,Reservation> action) {
-        final String reservationIdToSkip = isUpdate ? reservation.getId() : null;
+    private Optional<Reservation> obtainLockAndExecuteReservationAction (Set<Integer> availableRooms, Reservation reservation, boolean isUpdate,  boolean overlapsOldReservation, Function<Reservation,Reservation> action) {
         for(Integer roomNumber: availableRooms) {
             Lock lock = locks.get(roomNumber);
             if (lock.tryLock()) {
                 try {
-                    if (validateRoomAvailability(reservation.getArrival(), reservation.getDeparture(), roomNumber, reservationIdToSkip)) {
+                    if (validateAvailabilityAndGetAvailableRooms(reservation, isUpdate, overlapsOldReservation).contains(roomNumber)) {
                         reservation.setRoomNumber(roomNumber);
                         return Optional.ofNullable(action.apply(reservation));
                     }
