@@ -6,16 +6,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resort.island.model.Availability;
 import com.resort.island.model.Reservation;
 import com.resort.island.repository.ReservationRepository;
-import com.resort.island.service.ReservationService;
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -117,8 +118,8 @@ class ReservationServiceTest {
         reservation.setEmail("u2@u2");
         reservation.setFirstName("u2");
         reservation.setLastName("u2");
-        reservation.setArrivalDate("2020-04-04");
-        reservation.setDepartureDate("2020-04-06");
+        reservation.setArrivalDate(LocalDate.now().plusDays(1).toString());
+        reservation.setDepartureDate(LocalDate.now().plusDays(2).toString());
         String result = reservationService.createReservation(reservation);
         Assert.assertNotNull(result);
     }
@@ -133,6 +134,30 @@ class ReservationServiceTest {
         reservation.setDepartureDate("2020-04-02");
         Assertions.assertThrows(IllegalStateException.class, () -> reservationService.createReservation(reservation))
                 .getMessage().equals("Unfortunately no rooms are available at the moment to make a reservation for the selected dates.");
+    }
+
+    @Test
+    void createReservationShouldFailWhenReserveMoreThan30DaysInAdvance() throws Exception {
+        Reservation reservation = new Reservation();
+        reservation.setEmail("u2@u2");
+        reservation.setFirstName("u2");
+        reservation.setLastName("u2");
+        reservation.setArrivalDate("2020-05-01");
+        reservation.setDepartureDate("2020-05-02");
+        Assertions.assertThrows(InvalidPropertyException.class, () -> reservationService.createReservation(reservation))
+                .getMessage().equals("A reservation can be made at most 30 days in advance.");
+    }
+
+    @Test
+    void createReservationShouldFailWhenReserveForToday() throws Exception {
+        Reservation reservation = new Reservation();
+        reservation.setEmail("u2@u2");
+        reservation.setFirstName("u2");
+        reservation.setLastName("u2");
+        reservation.setArrivalDate(LocalDate.now().toString());
+        reservation.setDepartureDate(LocalDate.now().plusDays(1).toString());
+        Assertions.assertThrows(InvalidPropertyException.class, () -> reservationService.createReservation(reservation))
+                .getMessage().equals("A reservation should be made at least 1 day in advance.");
     }
 
     @Test
